@@ -2,58 +2,129 @@
   "pluginAlias": "WinPCTV",
   "pluginType": "platform",
   "singular": true,
-  "headerDisplay": "Exposes one or more Windows PCs as HomeKit Television accessories. Turns on via Wake-on-LAN and off/status via Airytec Switch Off's web interface.",
+  "headerDisplay": "Exposes a single Windows PC as a HomeKit Television accessory. Turns on via Wake-on-LAN (with automatic retries) and off/restart/sleep via Airytec Switch Off.",
   "schema": {
     "type": "object",
     "properties": {
-      "devices": {
-        "type": "array",
-        "title": "Devices",
-        "items": {
-          "type": "object",
-          "properties": {
-            "name": { "title": "Name", "type": "string", "required": true },
-            "mac": { "title": "MAC Address", "type": "string", "required": true },
-            "ip": { "title": "IP Address", "type": "string", "required": true },
-            "broadcastAddress": { "title": "Broadcast Address", "type": "string", "default": "255.255.255.255" },
-            "wolPort": { "title": "Wake-on-LAN Port", "type": "integer", "default": 9 },
-            "httpPort": { "title": "Airytec Port", "type": "integer", "default": 8000 },
-            "username": { "title": "Airytec Username", "type": "string" },
-            "password": { "title": "Airytec Password", "type": "string" },
-            "statusPath": { "title": "Status Path", "type": "string", "default": "/" },
-            "shutdownPath": { "title": "Shutdown Path", "type": "string", "default": "/?action=System.Shutdown" },
-            "pollInterval": { "title": "Poll Interval (seconds)", "type": "integer", "default": 60, "minimum": 15 },
-            "httpTimeoutMs": { "title": "HTTP Timeout (ms)", "type": "integer", "default": 4000 }
-          }
-        }
+      "name": {
+        "title": "Name",
+        "type": "string",
+        "default": "Windows PC"
+      },
+      "mac": {
+        "title": "MAC Address",
+        "type": "string"
+      },
+      "ip": {
+        "title": "IP Address",
+        "type": "string"
+      },
+      "username": {
+        "title": "Airytec Username",
+        "type": "string"
+      },
+      "password": {
+        "title": "Airytec Password",
+        "type": "string"
+      },
+      "httpPort": {
+        "title": "Airytec Port",
+        "type": "integer",
+        "default": 8000
+      },
+      "pollInterval": {
+        "title": "Poll Interval (seconds)",
+        "type": "integer",
+        "default": 60,
+        "minimum": 15
+      },
+      "broadcastAddress": {
+        "title": "Broadcast Address",
+        "type": "string",
+        "default": "255.255.255.255"
+      },
+      "wolPort": {
+        "title": "Wake-on-LAN Port",
+        "type": "integer",
+        "default": 9
+      },
+      "statusPath": {
+        "title": "Status Path",
+        "type": "string",
+        "default": "/"
+      },
+      "shutdownPath": {
+        "title": "Shutdown Path",
+        "type": "string",
+        "default": "/?action=System.Shutdown"
+      },
+      "restartPath": {
+        "title": "Restart Path",
+        "type": "string",
+        "default": "/?action=System.Restart"
+      },
+      "sleepPath": {
+        "title": "Sleep Path",
+        "type": "string",
+        "default": "/?action=System.Standby"
+      },
+      "httpTimeoutMs": {
+        "title": "HTTP Timeout (ms)",
+        "type": "integer",
+        "default": 4000
+      },
+      "wolRetries": {
+        "title": "Magic Packets per Attempt",
+        "type": "integer",
+        "default": 3,
+        "minimum": 1
+      },
+      "wolRetryDelayMs": {
+        "title": "Delay Between Packets (ms)",
+        "type": "integer",
+        "default": 400
+      },
+      "wolMaxCycles": {
+        "title": "Max Wake Attempts",
+        "type": "integer",
+        "default": 3,
+        "minimum": 1
+      },
+      "wolBootWaitMs": {
+        "title": "Wait Before Retry (ms)",
+        "type": "integer",
+        "default": 20000
       }
-    }
+    },
+    "required": [
+      "mac",
+      "ip"
+    ]
   },
   "form": [
+    "name",
+    "mac",
+    "ip",
+    "username",
+    "password",
+    "httpPort",
+    "pollInterval",
     {
-      "type": "array",
-      "key": "devices",
-      "name": "Devices",
+      "type": "fieldset",
+      "expandable": true,
+      "title": "Advanced",
       "items": [
-        "devices[].name",
-        "devices[].mac",
-        "devices[].ip",
-        "devices[].username",
-        "devices[].password",
-        "devices[].httpPort",
-        "devices[].pollInterval",
-        {
-          "type": "fieldset",
-          "expandable": true,
-          "title": "Advanced",
-          "items": [
-            "devices[].broadcastAddress",
-            "devices[].wolPort",
-            "devices[].statusPath",
-            "devices[].shutdownPath",
-            "devices[].httpTimeoutMs"
-          ]
-        }
+        "broadcastAddress",
+        "wolPort",
+        "statusPath",
+        "shutdownPath",
+        "restartPath",
+        "sleepPath",
+        "httpTimeoutMs",
+        "wolRetries",
+        "wolRetryDelayMs",
+        "wolMaxCycles",
+        "wolBootWaitMs"
       ]
     }
   ]
