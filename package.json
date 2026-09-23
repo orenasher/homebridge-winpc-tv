@@ -1,7 +1,7 @@
 {
   "displayName": "Homebridge WinPC TV",
   "name": "homebridge-winpc-tv",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Exposes a Windows PC as a single HomeKit Television accessory: turns it on with Wake-on-LAN and off/status via Airytec Switch Off's web interface. No separate helper script needed.",
   "license": "MIT",
   "main": "index.js",

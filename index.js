@@ -51,11 +51,10 @@ class WinPCTVAccessory {
     this.pollInterval = Math.max(15, cfg.pollInterval || 60) * 1000;
     this.httpTimeoutMs = cfg.httpTimeoutMs || 4000;
 
-    // WOL retry tuning
-    this.wolRetries = cfg.wolRetries || 3;          // packets sent per "cycle"
+    this.wolRetries = cfg.wolRetries || 3;
     this.wolRetryDelayMs = cfg.wolRetryDelayMs || 400;
-    this.wolMaxCycles = cfg.wolMaxCycles || 3;       // how many times to re-check & resend
-    this.wolBootWaitMs = cfg.wolBootWaitMs || 20000; // wait between cycles
+    this.wolMaxCycles = cfg.wolMaxCycles || 3;
+    this.wolBootWaitMs = cfg.wolBootWaitMs || 20000;
 
     this.currentActive = false;
     this._wolInProgress = false;
@@ -67,7 +66,7 @@ class WinPCTVAccessory {
     this._setupTelevisionService();
     this._setupInputSources();
 
-    this.api.publishExternalAccessories(PLUGIN_NAME_SAFE(), [this.accessory]);
+    this.api.publishExternalAccessories(PLUGIN_NAME, [this.accessory]);
     this.log('[%s] Published as an external Television accessory.', this.name);
 
     this._refreshStatus();
@@ -110,18 +109,19 @@ class WinPCTVAccessory {
 
   async _onSetActiveIdentifier(tv, value) {
     this._activeIdentifier = value;
-
-    if (!this.currentActive) return; // ignore input taps while PC is off
+    if (!this.currentActive) return;
 
     if (value === 2) {
       this.log('[%s] Restart requested via input selection.', this.name);
-      try { await this._httpRequest(this.restartPath); }
-      catch (e) { this.log.warn('[%s] Restart request failed: %s', this.name, e.message); }
+      this._httpRequest(this.restartPath).catch((e) => {
+        this.log.warn('[%s] Restart request failed: %s', this.name, e.message);
+      });
       this._revertToWindowsInput(tv);
     } else if (value === 3) {
       this.log('[%s] Sleep requested via input selection.', this.name);
-      try { await this._httpRequest(this.sleepPath); }
-      catch (e) { this.log.warn('[%s] Sleep request failed: %s', this.name, e.message); }
+      this._httpRequest(this.sleepPath).catch((e) => {
+        this.log.warn('[%s] Sleep request failed: %s', this.name, e.message);
+      });
       this._revertToWindowsInput(tv);
     }
   }
@@ -133,16 +133,18 @@ class WinPCTVAccessory {
     }, 3000);
   }
 
-  async _setActive(desired) {
+  _setActive(desired) {
     if (desired) {
-      await this._wakeWithRetries();
+      this._wakeWithRetries().catch((e) => {
+        this.log.warn('[%s] Wake process error: %s', this.name, e.message);
+      });
+      return;
     } else {
-      try {
-        await this._httpRequest(this.shutdownPath);
-        this.currentActive = false;
-      } catch (e) {
-        this.log.warn('[%s] Shutdown request failed: %s', this.name, e.message);
-      }
+      this._httpRequest(this.shutdownPath)
+        .then(() => { this.currentActive = false; })
+        .catch((e) => {
+          this.log.warn('[%s] Shutdown request failed: %s', this.name, e.message);
+        });
     }
   }
 
@@ -246,8 +248,4 @@ class WinPCTVAccessory {
   _sleep(ms) {
     return new Promise((resolve) => setTimeout(resolve, ms));
   }
-}
-
-function PLUGIN_NAME_SAFE() {
-  return PLUGIN_NAME;
 }
