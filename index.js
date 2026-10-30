@@ -139,12 +139,40 @@ class WinPCTVAccessory {
         this.log.warn('[%s] Wake process error: %s', this.name, e.message);
       });
       return;
-    } else {
-      this._httpRequest(this.shutdownPath)
-        .then(() => { this.currentActive = false; })
-        .catch((e) => {
-          this.log.warn('[%s] Shutdown request failed: %s', this.name, e.message);
-        });
+    }
+    // Hold off polling while the PC goes down, then verify the real state.
+    this._shutdownUntil = Date.now() + 90000;
+    this._httpRequest(this.shutdownPath)
+      .catch((e) => {
+        this.log('[%s] Shutdown request ended with "%s" (normal while the PC goes down), verifying...', this.name, e.message);
+      })
+      .then(() => this._verifyShutdown())
+      .catch((e) => this.log.warn('[%s] Shutdown verify error: %s', this.name, e.message));
+  }
+
+  async _verifyShutdown() {
+    for (let i = 0; i < 12; i++) {
+      await this._sleep(5000);
+      if (!(await this._checkStatus())) {
+        this._shutdownUntil = 0;
+        this._applyActive(false);
+        this.log('[%s] PC is off (confirmed).', this.name);
+        return;
+      }
+    }
+    this._shutdownUntil = 0;
+    this.log.warn('[%s] PC still responding 60s after the shutdown request - it did not shut down.', this.name);
+    this._applyActive(true);
+  }
+
+  _applyActive(up) {
+    this.currentActive = up;
+    const ch = this.tvService.getCharacteristic(this.Characteristic.Active);
+    const v = up ? 1 : 0;
+    if (ch.value !== v) ch.updateValue(v);
+    if (up && this._activeIdentifier !== 1) {
+      this._activeIdentifier = 1;
+      this.tvService.updateCharacteristic(this.Characteristic.ActiveIdentifier, 1);
     }
   }
 
@@ -175,6 +203,7 @@ class WinPCTVAccessory {
     }
 
     this.log.warn('[%s] Gave up waking PC after %d cycles.', this.name, this.wolMaxCycles);
+    this._applyActive(false);
     this._wolInProgress = false;
   }
 
@@ -208,15 +237,12 @@ class WinPCTVAccessory {
   }
 
   async _refreshStatus() {
+    if (this._wolInProgress || Date.now() < (this._shutdownUntil || 0)) return;
     const up = await this._checkStatus();
     if (up !== this.currentActive) {
-      this.currentActive = up;
-      this.tvService.updateCharacteristic(this.Characteristic.Active, up);
-      if (up) {
-        this._activeIdentifier = 1;
-        this.tvService.updateCharacteristic(this.Characteristic.ActiveIdentifier, 1);
-      }
+      this.log('[%s] State change detected: PC is now %s.', this.name, up ? 'ON' : 'OFF');
     }
+    this._applyActive(up);
   }
 
   _httpRequest(path) {
